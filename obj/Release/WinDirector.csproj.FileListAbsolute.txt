@@ -1,0 +1,6 @@
+C:\Users\krmcd\source\repos\WinDirector\WinDirector\bin\Release\WinDirector.dll
+C:\Users\krmcd\source\repos\WinDirector\WinDirector\bin\Release\WinDirector.pdb
+C:\Users\krmcd\source\repos\WinDirector\WinDirector\obj\Release\WinDirector.csproj.CoreCompileInputs.cache
+C:\Users\krmcd\source\repos\WinDirector\WinDirector\obj\Release\WinDirector.dll
+C:\Users\krmcd\source\repos\WinDirector\WinDirector\obj\Release\WinDirector.pdb
+C:\Users\krmcd\source\repos\WinDirector\WinDirector\obj\Release\WinDirector.csproj.AssemblyReference.cache
