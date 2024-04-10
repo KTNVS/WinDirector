@@ -29,23 +29,21 @@ namespace WinDirector.Input
             return result.ToString();
         }
 
+
         public delegate void NewTextHandler(TextEventArgs e);
-        public static event NewTextHandler OnNewText;
 
-
-        private static readonly NewTextManager newTextManager = new NewTextManager();
-        private class NewTextManager
+        public class NewTextManager
         {
+            public event NewTextHandler OnNewText;
             public NewTextManager()
             {
-                Key.OnKeyDown += Key_OnKeyDown;
+                Key.KeyHook.Instance.OnKeyDown += Key_OnKeyDown;
             }
             ~NewTextManager()
             {
-                Key.OnKeyDown -= Key_OnKeyDown;
                 OnNewText = null;
             }
-            private void Key_OnKeyDown(KeyEventArgs e)
+            public void Key_OnKeyDown(KeyEventArgs e)
             {
                 OnNewText?.Invoke(new TextEventArgs(KeyCodeToUnicode(e.KeyCode)));
             }
@@ -58,18 +56,17 @@ namespace WinDirector.Input
             private readonly Dictionary<string, ValueTuple<string, bool>> sequencesBeingWaitedFor;
             // Full Sequence, Sequence So Far, Is Permament
 
-            public event NewTextHandler OnSequenceFound;
+            public event NewTextHandler OnSequenceFound; // TODO: creating a MessageBox to this event then hitting enter to close the box causes crashes
+            private readonly NewTextManager textManager;
 
             public TextListener()
             {
                 sequencesToBeRemoved = new HashSet<string>();
                 sequencesToBeChanged = new Dictionary<string, ValueTuple<string, bool>>();
                 sequencesBeingWaitedFor = new Dictionary<string, ValueTuple<string, bool>>();
-                OnNewText += TextRecorder_OnNewText;
-            }
-            ~TextListener()
-            {
-                OnNewText -= TextRecorder_OnNewText;
+
+                textManager = new NewTextManager();
+                textManager.OnNewText += TextRecorder_OnNewText;
             }
             private void TextRecorder_OnNewText(TextEventArgs e)
             {
@@ -139,6 +136,8 @@ namespace WinDirector.Input
         }
         public class TextRecorder
         {
+            private readonly NewTextManager textManager;
+
             private readonly StringBuilder recorded_text;
             public string RecordedText => recorded_text.ToString();
 
@@ -147,11 +146,13 @@ namespace WinDirector.Input
             public TextRecorder()
             {
                 recorded_text = new StringBuilder();
-                OnNewText += TextRecorder_OnNewText;
+
+                textManager = new NewTextManager();
+                textManager.OnNewText += TextRecorder_OnNewText;
             }
             ~TextRecorder()
             {
-                OnNewText -= TextRecorder_OnNewText;
+                textManager.OnNewText -= TextRecorder_OnNewText;
             }
 
             private void TextRecorder_OnNewText(TextEventArgs e)

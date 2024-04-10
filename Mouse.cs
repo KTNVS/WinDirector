@@ -9,7 +9,6 @@ namespace WinDirector.Input
     public static class Mouse
     {
         public static bool Enabled = true;
-        private static readonly MouseHook Hook = new MouseHook(); // MouseHook works as a singleton
 
         public static void SetCursorPosition(Location location)
         {
@@ -18,12 +17,6 @@ namespace WinDirector.Input
         public static void SetCursorPosition(Location location, IntPtr handle)
         {
             SendMouse(location, (uint)WM.MOUSEMOVE, handle); 
-        }
-        public static void SendMouse(uint WM_Message)
-        {
-            Location point = Point;
-            IntPtr lparam = (IntPtr)CreateLParamFromPosition(point.X, point.Y);
-            Messages.PostMessage(IntPtr.Zero, WM_Message, IntPtr.Zero, lparam);
         }
         public static void SendMouse(Location point, uint WM_Message)
         {
@@ -37,22 +30,29 @@ namespace WinDirector.Input
         }
         private static int CreateLParamFromPosition(int LoWord, int HiWord) => (HiWord << 16) | (LoWord & 0xffff);
 
-
-        public static Location Point { get; private set; }
-
         public delegate void MouseMoveHandler(MouseEventArgs e);
-        public static event MouseMoveHandler OnMouseMove;
-
         public delegate void MouseDownHandler(MouseEventArgs e);
-        public static event MouseDownHandler OnMouseDown;
-
         public delegate void MouseUpHandler(MouseEventArgs e);
-        public static event MouseUpHandler OnMouseUp;
-        private class MouseHook
+
+        public class MouseHook
         {
+            public static MouseHook Instance
+            {
+                get => init.Value;
+            }
+            private static readonly Lazy<MouseHook> init = new Lazy<MouseHook>(() => new MouseHook());
+
+
             private readonly IntPtr HookID;
             private readonly HookProc hProc;
-            public MouseHook()
+
+            public Location Point { get; private set; }
+
+            public event MouseMoveHandler OnMouseMove;
+            public event MouseDownHandler OnMouseDown;
+            public event MouseUpHandler OnMouseUp;
+
+            private MouseHook()
             {
                 hProc = MouseHookProc;
                 HookID = HookManager.SetHook(hProc, WH.MOUSE_LL);
@@ -60,9 +60,7 @@ namespace WinDirector.Input
             ~MouseHook()
             {
                 HookManager.UnHook(HookID);
-                OnMouseMove = null;
-                OnMouseDown = null;
-                OnMouseUp = null;
+                OnMouseMove = null; OnMouseDown = null; OnMouseUp = null;
             }
             private int MouseHookProc(int nCode, IntPtr wParam, IntPtr lParam)
             {

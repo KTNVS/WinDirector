@@ -13,7 +13,6 @@ namespace WinDirector.Input
         private const uint KEYEVENTF_KEYUP = 0x0002;
 
         public static bool Enabled = true;
-        private static readonly KeyHook Hook = new KeyHook(); // KeyHook works as a singleton
 
 
         // TODO: Sending control/alt keys to a specific window does not work. Also not reliable. Find a solution or a workaround. Consider SendInput or SetKeyboardState
@@ -29,31 +28,34 @@ namespace WinDirector.Input
             Messages.PostMessage(hwnd, WM_Message, (IntPtr)key, IntPtr.Zero);
         }
 
-
-        private static readonly HashSet<KeyCode> PressedKeys = new HashSet<KeyCode>();
-        public static bool IsPressed(KeyCode key) { return PressedKeys.Contains(key); }
-        public static int GetPressedKeyCount() { return PressedKeys.Count; }
-        public static KeyCode[] GetPressedKeys()
-        {
-            KeyCode[] keys = new KeyCode[GetPressedKeyCount()];
-            PressedKeys.CopyTo(keys);
-            return keys;
-        }
-
-
-
         public delegate void KeyDownHandler(KeyEventArgs e);
-        public static event KeyDownHandler OnKeyDown;
-
         public delegate void KeyUpHandler(KeyEventArgs e);
-        public static event KeyUpHandler OnKeyUp;
 
-        private class KeyHook // In console apps this slows down the key presses
+        public class KeyHook // In console apps this slows down the key presses
         {
+            public static KeyHook Instance
+            {
+                get => init.Value;
+            }
+            private static readonly Lazy<KeyHook> init = new Lazy<KeyHook>(() => new KeyHook());
+
             private readonly IntPtr HookID;
             private readonly HookProc hProc;
 
-            public KeyHook()
+            private readonly HashSet<KeyCode> PressedKeys = new HashSet<KeyCode>();
+            public bool IsPressed(KeyCode key) { return PressedKeys.Contains(key); }
+            public int GetPressedKeyCount() { return PressedKeys.Count; }
+            public KeyCode[] GetPressedKeys()
+            {
+                KeyCode[] keys = new KeyCode[GetPressedKeyCount()];
+                PressedKeys.CopyTo(keys);
+                return keys;
+            }
+
+            public event KeyDownHandler OnKeyDown;
+            public event KeyUpHandler OnKeyUp;
+
+            private KeyHook()
             {
                 hProc = KeyHookProc;
                 HookID = HookManager.SetHook(hProc, WH.KEYBOARD_LL);
