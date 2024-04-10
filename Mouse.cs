@@ -1,4 +1,5 @@
 ﻿using System;
+using System.ComponentModel;
 using System.Runtime.InteropServices;
 
 using WinDirector.WinApiHandler;
@@ -67,6 +68,7 @@ namespace WinDirector.Input
             {
                 MouseHookStruct MyMouseHookStruct = (MouseHookStruct)Marshal.PtrToStructure(lParam, typeof(MouseHookStruct));
 
+                MouseEventArgs mouseArgs = new MouseEventArgs(MouseButtons.None, Point);
                 if (nCode >= 0)
                 {
                     switch ((WM)wParam)
@@ -74,30 +76,30 @@ namespace WinDirector.Input
                         case WM.MOUSEMOVE:
                             GetCursorPos(out Location location);
                             Point = location;
-                            OnMouseMove?.Invoke(new MouseEventArgs(MouseButtons.None, Point));
+                            OnMouseMove?.Invoke(mouseArgs = new MouseEventArgs(MouseButtons.None, Point));
                             break;
                         case WM.LBUTTONDOWN:
-                            OnMouseDown?.Invoke(new MouseEventArgs(MouseButtons.Left, Point));
+                            OnMouseDown?.Invoke(mouseArgs = new MouseEventArgs(MouseButtons.Left, Point));
                             break;
                         case WM.LBUTTONUP:
-                            OnMouseUp?.Invoke(new MouseEventArgs(MouseButtons.Left, Point));
+                            OnMouseUp?.Invoke(mouseArgs = new MouseEventArgs(MouseButtons.Left, Point));
                             break;
                         case WM.RBUTTONDOWN:
-                            OnMouseDown?.Invoke(new MouseEventArgs(MouseButtons.Right, Point));
+                            OnMouseDown?.Invoke(mouseArgs = new MouseEventArgs(MouseButtons.Right, Point));
                             break;
                         case WM.RBUTTONUP:
-                            OnMouseUp?.Invoke(new MouseEventArgs(MouseButtons.Right, Point));
+                            OnMouseUp?.Invoke(mouseArgs = new MouseEventArgs(MouseButtons.Right, Point));
                             break;
                         case WM.MBUTTONDOWN:
-                            OnMouseDown?.Invoke(new MouseEventArgs(MouseButtons.Middle, Point));
+                            OnMouseDown?.Invoke(mouseArgs = new MouseEventArgs(MouseButtons.Middle, Point));
                             break;
                         case WM.MBUTTONUP:
-                            OnMouseUp?.Invoke(new MouseEventArgs(MouseButtons.Middle, Point));
+                            OnMouseUp?.Invoke(mouseArgs = new MouseEventArgs(MouseButtons.Middle, Point));
                             break;
                     }
                 }
 
-                if (!Enabled) { return 1; };
+                if (!Enabled || mouseArgs.Cancel) { return 1; };
                 return HookManager.CallNextHookEx(HookID, nCode, wParam, lParam);
             }
         }
@@ -108,7 +110,7 @@ namespace WinDirector.Input
         [DllImport("user32.dll")]
         private static extern bool SetCursorPos(int X, int Y);
     }
-    public class MouseEventArgs : EventArgs
+    public class MouseEventArgs : CancelEventArgs
     {
         public MouseEventArgs(MouseButtons button, Location location)
         {

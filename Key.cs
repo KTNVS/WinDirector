@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.ComponentModel;
 using WinDirector.WinApiHandler;
 
 namespace WinDirector.Input
@@ -47,7 +48,7 @@ namespace WinDirector.Input
         public delegate void KeyUpHandler(KeyEventArgs e);
         public static event KeyUpHandler OnKeyUp;
 
-        private class KeyHook
+        private class KeyHook // In console apps this slows down the key presses
         {
             private readonly IntPtr HookID;
             private readonly HookProc hProc;
@@ -66,6 +67,7 @@ namespace WinDirector.Input
 
             private int KeyHookProc(int nCode, IntPtr wParam, IntPtr lParam)
             {
+                KeyEventArgs keyArgs = new KeyEventArgs(KeyCode.None);
                 if (nCode >= 0)
                 {
                     if (wParam == (IntPtr)WM.KEYDOWN || wParam == (IntPtr)WM.SYSKEYDOWN)
@@ -74,7 +76,7 @@ namespace WinDirector.Input
                         KeyCode key = (KeyCode)vkCode;
 
                         PressedKeys.Add(key);
-                        OnKeyDown?.Invoke(new KeyEventArgs(key));
+                        OnKeyDown?.Invoke(keyArgs = new KeyEventArgs(key));
                     }
                     else if (wParam == (IntPtr)WM.KEYUP || wParam == (IntPtr)WM.SYSKEYUP)
                     {
@@ -82,11 +84,11 @@ namespace WinDirector.Input
                         KeyCode key = (KeyCode)vkCode;
 
                         PressedKeys.Remove(key);
-                        OnKeyUp?.Invoke(new KeyEventArgs(key));
+                        OnKeyUp?.Invoke(keyArgs = new KeyEventArgs(key));
                     }
                 }
-
-                if (!Enabled) { return 1; };
+                
+                if (!Enabled || keyArgs.Cancel) { return 1; };
                 return HookManager.CallNextHookEx(HookID, nCode, wParam, lParam);
             }
         }
@@ -94,7 +96,7 @@ namespace WinDirector.Input
         [DllImport("user32.dll", CharSet = CharSet.Auto)]
         private static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, IntPtr dwExtraInfo);
     }
-    public class KeyEventArgs : EventArgs
+    public class KeyEventArgs : CancelEventArgs
     {
         public KeyEventArgs(KeyCode keyCode)
         {
