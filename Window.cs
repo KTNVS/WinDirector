@@ -10,6 +10,9 @@ namespace WinDirector.Processes.UI
         public static extern IntPtr WindowFromPoint(Location Point);
 
         [DllImport("user32.dll")]
+        public static extern IntPtr GetForegroundWindow();
+
+        [DllImport("user32.dll")]
         public static extern int SetWindowText(IntPtr hWnd, string text);
 
 

@@ -12,7 +12,24 @@ namespace WinDirector.Input
         private const uint KEYEVENTF_KEYDOWN = 0x0001;
         private const uint KEYEVENTF_KEYUP = 0x0002;
 
-        public static bool Enabled = true;
+        private static bool _enabled = true;
+        public static bool Enabled
+        {
+            get
+            {
+                return _enabled;
+            }
+            set
+            {
+                if (!keyHookIsInitialized)
+                {
+                    InitializeHook();
+                }
+                _enabled = value;
+            }
+        }
+        private static void InitializeHook() => _ = KeyHook.Instance;
+        private static bool keyHookIsInitialized = false;
 
 
         // TODO: Sending control/alt keys to a specific window does not work. Also not reliable. Find a solution or a workaround. Consider SendInput or SetKeyboardState
@@ -26,6 +43,28 @@ namespace WinDirector.Input
         {
             uint WM_Message = (uint)(keyAction == KeyAction.KeyDown ? WM.KEYDOWN : WM.KEYUP);
             Messages.PostMessage(hwnd, WM_Message, (IntPtr)key, IntPtr.Zero);
+        }
+
+        public class KeyWatcher
+        {
+            private readonly HashSet<KeyCode> PressedKeys = new HashSet<KeyCode>();
+            public bool IsPressed(KeyCode key) { return PressedKeys.Contains(key); }
+            public int GetPressedKeyCount() { return PressedKeys.Count; }
+            public KeyCode[] GetPressedKeys()
+            {
+                KeyCode[] keys = new KeyCode[GetPressedKeyCount()];
+                PressedKeys.CopyTo(keys);
+                return keys;
+            }
+
+            public KeyWatcher()
+            {
+                KeyHook.Instance.OnKeyDown += OnKeyDown;
+                KeyHook.Instance.OnKeyUp += OnKeyUp;
+            }
+
+            private void OnKeyDown(KeyEventArgs e) => PressedKeys.Add(e.KeyCode);
+            private void OnKeyUp(KeyEventArgs e) => PressedKeys.Remove(e.KeyCode);
         }
 
         public delegate void KeyDownHandler(KeyEventArgs e);
@@ -42,21 +81,13 @@ namespace WinDirector.Input
             private readonly IntPtr HookID;
             private readonly HookProc hProc;
 
-            private readonly HashSet<KeyCode> PressedKeys = new HashSet<KeyCode>();
-            public bool IsPressed(KeyCode key) { return PressedKeys.Contains(key); }
-            public int GetPressedKeyCount() { return PressedKeys.Count; }
-            public KeyCode[] GetPressedKeys()
-            {
-                KeyCode[] keys = new KeyCode[GetPressedKeyCount()];
-                PressedKeys.CopyTo(keys);
-                return keys;
-            }
-
             public event KeyDownHandler OnKeyDown;
             public event KeyUpHandler OnKeyUp;
 
             private KeyHook()
             {
+                keyHookIsInitialized = true;
+
                 hProc = KeyHookProc;
                 HookID = HookManager.SetHook(hProc, WH.KEYBOARD_LL);
             }
@@ -77,7 +108,6 @@ namespace WinDirector.Input
                         int vkCode = Marshal.ReadInt32(lParam);
                         KeyCode key = (KeyCode)vkCode;
 
-                        PressedKeys.Add(key);
                         OnKeyDown?.Invoke(keyArgs = new KeyEventArgs(key));
                     }
                     else if (wParam == (IntPtr)WM.KEYUP || wParam == (IntPtr)WM.SYSKEYUP)
@@ -85,7 +115,6 @@ namespace WinDirector.Input
                         int vkCode = Marshal.ReadInt32(lParam);
                         KeyCode key = (KeyCode)vkCode;
 
-                        PressedKeys.Remove(key);
                         OnKeyUp?.Invoke(keyArgs = new KeyEventArgs(key));
                     }
                 }
