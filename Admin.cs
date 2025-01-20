@@ -1,6 +1,6 @@
 ﻿using Microsoft.Win32;
 
-namespace WinDirector.System.Admin
+namespace WinDirector.Admin
 {
     public static class TaskManager
     {

@@ -48,12 +48,12 @@ namespace WinDirector.Input
 
         public static Location GetCursorPosition()
         {
-            GetCursorPos(out Location currentPoint);
+            WinApi.GetCursorPos(out Location currentPoint);
             return currentPoint;
         }
         public static void SetCursorPosition(Location location)
         {
-            SetCursorPos(location.X, location.Y);
+            WinApi.SetCursorPos(location.X, location.Y);
         }
         public static void SetCursorPosition(Location location, IntPtr handle)
         {
@@ -62,12 +62,12 @@ namespace WinDirector.Input
         public static void SendMouse(Location point, uint WM_Message)
         {
             IntPtr lparam = (IntPtr)CreateLParamFromPosition(point.X, point.Y);
-            Messages.PostMessage(IntPtr.Zero, WM_Message, IntPtr.Zero, lparam);
+            WinApi.PostMessage(IntPtr.Zero, WM_Message, IntPtr.Zero, lparam);
         }
         public static void SendMouse(Location point, uint WM_Message, IntPtr handle)
         {
             IntPtr lparam = (IntPtr)CreateLParamFromPosition(point.X, point.Y);
-            Messages.PostMessage(handle, WM_Message, IntPtr.Zero, lparam);
+            WinApi.PostMessage(handle, WM_Message, IntPtr.Zero, lparam);
         }
         private static int CreateLParamFromPosition(int LoWord, int HiWord) => (HiWord << 16) | (LoWord & 0xffff);
 
@@ -114,7 +114,7 @@ namespace WinDirector.Input
                     switch ((WM)wParam)
                     {
                         case WM.MOUSEMOVE:
-                            GetCursorPos(out Location location);
+                            WinApi.GetCursorPos(out Location location);
                             _point = location;
                             OnMouseMove?.Invoke(mouseArgs = new MouseEventArgs(MouseButtons.None, _point));
                             break;
@@ -140,15 +140,11 @@ namespace WinDirector.Input
                 }
 
                 if (!Enabled || mouseArgs.Cancel) { return 1; };
-                return HookManager.CallNextHookEx(HookID, nCode, wParam, lParam);
+                return WinApi.CallNextHookEx(HookID, nCode, wParam, lParam);
             }
         }
 
-        [DllImport("user32.dll", CharSet = CharSet.Auto)]
-        private static extern bool GetCursorPos(out Location lpPoint);
-
-        [DllImport("user32.dll")]
-        private static extern bool SetCursorPos(int X, int Y);
+        
     }
     public class MouseEventArgs : CancelEventArgs
     {
@@ -160,6 +156,18 @@ namespace WinDirector.Input
 
         public MouseButtons Button { get; }
         public Location Location { get; }
+    }
+    
+}
+namespace WinDirector
+{
+    public partial class WinApi
+    {
+        [DllImport("user32.dll", CharSet = CharSet.Auto)]
+        public static extern bool GetCursorPos(out Location lpPoint);
+
+        [DllImport("user32.dll")]
+        public static extern bool SetCursorPos(int X, int Y);
     }
     public enum MouseButtons
     {

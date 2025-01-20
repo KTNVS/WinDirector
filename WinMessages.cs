@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Runtime.InteropServices;
 
-namespace WinDirector.WinApiHandler
+namespace WinDirector
 {
-    public static class Messages
+    public partial class WinApi
     {
         [DllImport("user32.dll", CharSet = CharSet.Auto)]
         public static extern IntPtr PostMessage(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);
@@ -970,5 +970,4 @@ namespace WinDirector.WinApiHandler
         /// </summary>
         HSHELL_WINDOWREPLACED = 13
     }
-
 }

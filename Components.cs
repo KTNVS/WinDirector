@@ -8,8 +8,7 @@ namespace WinDirector
     [StructLayout(LayoutKind.Sequential)]
     public struct Location : IEquatable<Location>
     {
-        public int X;
-        public int Y;
+        public int X, Y;
 
         public static Location Empty = new Location(0, 0);
         public Location(int x, int y) { X = x; Y = y; }
@@ -46,6 +45,57 @@ namespace WinDirector
         public Location ToVisualPoint()
         {
             return this * Display.Settings.ScalingFactor;
+        }
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct Rectangle : IEquatable<Rectangle>
+    {
+        public int Left, Top, Right, Bottom;
+
+        public static Rectangle Empty = new Rectangle(0, 0, 0, 0);
+        public Location Location => new Location(Left, Top);
+        public int X => Left;
+        public int Y => Top;
+        public int Width => Right - Left;
+        public int Height => Bottom - Top;
+
+        public Rectangle(int left, int top, int right, int bottom)
+        {
+            Left = left;
+            Top = top;
+            Right = right;
+            Bottom = bottom;
+        }
+        public Rectangle(Location loc, int width, int height)
+        {
+            Left = loc.X;
+            Top = loc.Y;
+            Right = Left + width;
+            Bottom = Top + height;
+        }
+        public override string ToString() => string.Format("Width: {0} to {1}, Height: {2} to {3}", Left, Right, Top, Bottom);
+        public override bool Equals(object obj) => obj is Rectangle location && Equals(location);
+        public bool Equals(Rectangle other) => other.Left == Left && other.Top == Top && other.Right == Right && other.Bottom == Bottom;
+
+        public bool Contains(Location pt)
+        {
+            return Left < pt.X && pt.X < Right && Top < pt.Y && pt.Y < Bottom;
+        }
+
+        public static bool operator ==(Rectangle c1, Rectangle c2) => c1.Equals(c2);
+
+        public static bool operator !=(Rectangle c1, Rectangle c2) => !c1.Equals(c2);
+        public override int GetHashCode()
+        {
+            int hash = 29;
+
+            hash = (hash * 31) + Left.GetHashCode();
+            hash = (hash * 31) + Right.GetHashCode();
+            hash = (hash * 31) + Top.GetHashCode();
+            hash = (hash * 31) + Bottom.GetHashCode();
+
+            return hash;
         }
     }
 }

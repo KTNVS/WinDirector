@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Windows.Forms;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -8,11 +9,15 @@ namespace WinDirector.Input
 {
     public static class Text
     {
-        private static readonly StringBuilder result = new StringBuilder();
+        public static void CopyToClipboard(string text) => Clipboard.SetText(text);
+        public static string PasteFromClipboard() => Clipboard.GetText();
+
+
+        private static readonly StringBuilder result = new StringBuilder(); // does not paste, just returns string
         public static string KeyCodeToUnicode(KeyCode key)
         {
             byte[] keyboardState = new byte[255];
-            bool keyboardStateStatus = GetKeyboardState(keyboardState);
+            bool keyboardStateStatus = WinApi.GetKeyboardState(keyboardState);
 
             if (!keyboardStateStatus)
             {
@@ -20,11 +25,11 @@ namespace WinDirector.Input
             }
 
             uint virtualKeyCode = (uint)key;
-            uint scanCode = MapVirtualKey(virtualKeyCode, 0);
-            IntPtr inputLocaleIdentifier = GetKeyboardLayout(0);
+            uint scanCode = WinApi.MapVirtualKey(virtualKeyCode, 0);
+            IntPtr inputLocaleIdentifier = WinApi.GetKeyboardLayout(0);
 
             result.Clear();
-            ToUnicodeEx(virtualKeyCode, scanCode, keyboardState, result, 5, 0, inputLocaleIdentifier);
+            WinApi.ToUnicodeEx(virtualKeyCode, scanCode, keyboardState, result, 5, 0, inputLocaleIdentifier);
 
             return result.ToString();
         }
@@ -54,7 +59,7 @@ namespace WinDirector.Input
             private readonly HashSet<string> sequencesToBeRemoved;
             private readonly Dictionary<string, ValueTuple<string, bool>> sequencesToBeChanged;
             private readonly Dictionary<string, ValueTuple<string, bool>> sequencesBeingWaitedFor;
-            // Full Sequence, Sequence So Far, Is Permament
+            // Full Sequence, Sequence So Far, Is Permament | TODO: make it so one class looks for one word
 
             public event NewTextHandler OnSequenceFound; // TODO: creating a MessageBox to this event then hitting enter to close the box causes crashes
             private readonly NewTextManager textManager;
@@ -197,16 +202,22 @@ namespace WinDirector.Input
             public string Text { get; }
         }
 
+    }
+}
+namespace WinDirector
+{
+    public partial class WinApi
+    {
         [DllImport("user32.dll")]
-        private static extern bool GetKeyboardState(byte[] lpKeyState);
+        public static extern bool GetKeyboardState(byte[] lpKeyState);
 
         [DllImport("user32.dll")]
-        private static extern uint MapVirtualKey(uint uCode, uint uMapType);
+        public static extern uint MapVirtualKey(uint uCode, uint uMapType);
 
         [DllImport("user32.dll")]
-        private static extern IntPtr GetKeyboardLayout(uint idThread);
+        public static extern IntPtr GetKeyboardLayout(uint idThread);
 
         [DllImport("user32.dll")]
-        private static extern int ToUnicodeEx(uint wVirtKey, uint wScanCode, byte[] lpKeyState, [Out, MarshalAs(UnmanagedType.LPWStr)] StringBuilder pwszBuff, int cchBuff, uint wFlags, IntPtr dwhkl);
+        public static extern int ToUnicodeEx(uint wVirtKey, uint wScanCode, byte[] lpKeyState, [Out, MarshalAs(UnmanagedType.LPWStr)] StringBuilder pwszBuff, int cchBuff, uint wFlags, IntPtr dwhkl);
     }
 }

@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
-using System.Text;
 using System.ComponentModel;
+using System.Linq;
 using WinDirector.WinApiHandler;
 
 namespace WinDirector.Input
@@ -37,16 +37,18 @@ namespace WinDirector.Input
         public static void SendKey(KeyCode key, KeyAction keyAction)
         {
             uint KEYEVENTF = keyAction == KeyAction.KeyDown ? KEYEVENTF_KEYDOWN : KEYEVENTF_KEYUP;
-            keybd_event((byte)key, 0, KEYEVENTF, IntPtr.Zero);
+            WinApi.keybd_event((byte)key, 0, KEYEVENTF, IntPtr.Zero);
         }
         public static void SendKey(KeyCode key, KeyAction keyAction, IntPtr hwnd)
         {
             uint WM_Message = (uint)(keyAction == KeyAction.KeyDown ? WM.KEYDOWN : WM.KEYUP);
-            Messages.PostMessage(hwnd, WM_Message, (IntPtr)key, IntPtr.Zero);
+            WinApi.PostMessage(hwnd, WM_Message, (IntPtr)key, IntPtr.Zero);
         }
 
-        public class KeyWatcher
+        public class KeyWatcher // add window specific
         {
+            private readonly IntPtr? WatchedWindow = null;
+
             private readonly HashSet<KeyCode> PressedKeys = new HashSet<KeyCode>();
             public bool IsPressed(KeyCode key) { return PressedKeys.Contains(key); }
             public int GetPressedKeyCount() { return PressedKeys.Count; }
@@ -62,9 +64,36 @@ namespace WinDirector.Input
                 KeyHook.Instance.OnKeyDown += OnKeyDown;
                 KeyHook.Instance.OnKeyUp += OnKeyUp;
             }
+            public KeyWatcher(IntPtr hWnd)
+            {
+                WatchedWindow = hWnd;
+                KeyHook.Instance.OnKeyDown += OnKeyDown;
+                KeyHook.Instance.OnKeyUp += OnKeyUp;
+            }
 
-            private void OnKeyDown(KeyEventArgs e) => PressedKeys.Add(e.KeyCode);
+            private void OnKeyDown(KeyEventArgs e)
+            {
+                if(WinApi.GetActiveWindow() == WatchedWindow)
+                    PressedKeys.Add(e.KeyCode);
+            }
             private void OnKeyUp(KeyEventArgs e) => PressedKeys.Remove(e.KeyCode);
+        }
+        public class ShortcutCatcher
+        {
+            private KeyWatcher KeyWatcher;
+            private readonly List<KeyCode> ShortcutKeys;
+
+            public ShortcutCatcher(KeyCode[] keys)
+            {
+                ShortcutKeys = keys.Distinct().ToList();
+                KeyWatcher = new KeyWatcher();
+                KeyHook.Instance.OnKeyDown += CheckShortcut;
+            }
+
+            private void CheckShortcut(KeyEventArgs e)
+            {
+                throw new NotImplementedException();
+            }
         }
 
         public delegate void KeyDownHandler(KeyEventArgs e);
@@ -120,12 +149,9 @@ namespace WinDirector.Input
                 }
                 
                 if (!Enabled || keyArgs.Cancel) { return 1; };
-                return HookManager.CallNextHookEx(HookID, nCode, wParam, lParam);
+                return WinApi.CallNextHookEx(HookID, nCode, wParam, lParam);
             }
         }
-
-        [DllImport("user32.dll", CharSet = CharSet.Auto)]
-        private static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, IntPtr dwExtraInfo);
     }
     public class KeyEventArgs : CancelEventArgs
     {
@@ -140,6 +166,16 @@ namespace WinDirector.Input
         KeyDown,
         KeyUp
     }
+}
+
+namespace WinDirector
+{
+    public partial class WinApi
+    {
+        [DllImport("user32.dll", CharSet = CharSet.Auto)]
+        public static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, IntPtr dwExtraInfo);
+    }
+
     public enum KeyCode : uint
     {
         KeyCode = 0x0000FFFF,
@@ -337,4 +373,5 @@ namespace WinDirector.Input
         Control = 0x00020000,
         Alt = 0x00040000
     };
+
 }
