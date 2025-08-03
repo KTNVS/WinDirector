@@ -57,11 +57,12 @@ namespace WinDirector.Processes.UI
                 WindowHandle = hWnd;
                 ControlledWindowProc = ControlledWndProc;
 
-                // Capture the original window procedure
                 OriginalProc = WinApi.GetWindowLongPtr(hWnd, (int)GWL.WND_PROC);
 
-                // Set the new window procedure (ControlledWindowProc)
-                WinApi.SetWindowLongPtr(hWnd, (int)GWL.WND_PROC, Marshal.GetFunctionPointerForDelegate(ControlledWindowProc));
+                if(Procedure.SetProc(ControlledWindowProc, hWnd) != IntPtr.Zero)
+                    Console.WriteLine("Hook set up");
+                else
+                    Console.WriteLine("Hook is not set up");
 
                 ResetAtExit = resetAtExit;
             }
@@ -70,13 +71,13 @@ namespace WinDirector.Processes.UI
             {
                 if (ResetAtExit && OriginalProc != IntPtr.Zero)
                 {
-                    // Restore the original window procedure
-                    WinApi.SetWindowLongPtr(WindowHandle, (int)GWL.WND_PROC, OriginalProc);
+                    Procedure.SetProc(OriginalProc, WindowHandle);
                 }
             }
 
             private IntPtr ControlledWndProc(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam)
             {
+                Console.WriteLine(msg);
                 if (msg == (uint)WM.SYSCOMMAND && (wParam.ToInt32() & 0xFFF0) == (int)SC.MOVE)
                     return IntPtr.Zero;
 
@@ -92,6 +93,8 @@ namespace WinDirector.Processes.UI
 
             public static IntPtr SetProc(WindowProc hProc, IntPtr hWnd) => // returns original
                 WinApi.SetWindowLongPtr(hWnd, (int)GWL.WND_PROC, Marshal.GetFunctionPointerForDelegate(hProc));
+            public static IntPtr SetProc(IntPtr hProc, IntPtr hWnd) =>
+                WinApi.SetWindowLongPtr(hWnd, (int)GWL.WND_PROC, hProc);
         }
     }
 }
