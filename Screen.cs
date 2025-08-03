@@ -31,18 +31,21 @@ namespace WinDirector.Devices
                 }
             }
 
-            public static float GetScalingFactor()
+            public static float GetScalingFactor() => GetScalingFactor(IntPtr.Zero);
+            public static float GetScalingFactor(IntPtr hwnd)
             {
-                Graphics g = Graphics.FromHwnd(IntPtr.Zero);
-                IntPtr desktop = g.GetHdc();
-                int LogicalScreenHeight = WinApi.GetDeviceCaps(desktop, (int)DeviceCap.VERTRES);
-                int PhysicalScreenHeight = WinApi.GetDeviceCaps(desktop, (int)DeviceCap.DESKTOPVERTRES);
+                IntPtr hdc = WinApi.GetDC(hwnd);
 
-                float ScreenScalingFactor = (float)PhysicalScreenHeight / (float)LogicalScreenHeight;
+                int logicalScreenHeight = WinApi.GetDeviceCaps(hdc, Convert.ToInt32(DeviceCap.VERTRES));
+                int physicalScreenHeight = WinApi.GetDeviceCaps(hdc, Convert.ToInt32(DeviceCap.DESKTOPVERTRES));
 
-                return ScreenScalingFactor;
+                float scalingFactor = (float)physicalScreenHeight / (float)logicalScreenHeight;
+
+                WinApi.ReleaseDC(IntPtr.Zero, hdc);
+
+                return scalingFactor;
             }
-            
+
         }
     }
 }
@@ -52,6 +55,12 @@ namespace WinDirector
     {
         [DllImport("gdi32.dll", CharSet = CharSet.Auto)]
         public static extern int GetDeviceCaps(IntPtr hdc, int nIndex);
+
+        [DllImport("user32.dll")]
+        public static extern IntPtr GetDC(IntPtr hWnd);
+
+        [DllImport("user32.dll")]
+        public static extern int ReleaseDC(IntPtr hWnd, IntPtr hDC);
     }
     enum DeviceCap
     {

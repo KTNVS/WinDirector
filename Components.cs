@@ -86,6 +86,9 @@ namespace WinDirector
         public static bool operator ==(Rectangle c1, Rectangle c2) => c1.Equals(c2);
 
         public static bool operator !=(Rectangle c1, Rectangle c2) => !c1.Equals(c2);
+
+        public static Rectangle operator *(Rectangle c, float f) =>
+            new Rectangle(Convert.ToInt32(c.Left * f), Convert.ToInt32(c.Top * f), Convert.ToInt32(c.Right * f), Convert.ToInt32(c.Bottom * f));
         public override int GetHashCode()
         {
             int hash = 29;
