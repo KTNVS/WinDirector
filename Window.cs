@@ -11,6 +11,17 @@ namespace WinDirector.Processes.UI
             WinApi.GetWindowRect(hwnd, out Rectangle rect);
             return rect;
         }
+        public static Rectangle GetClientRectangle(IntPtr hwnd)
+        {
+            WinApi.GetClientRect(hwnd, out Rectangle clientRectRaw);
+            return clientRectRaw;
+        }
+        public static Location ClientToScreen(IntPtr hwnd)
+        {
+            Location clientTopLeftRaw = Location.Empty;
+            WinApi.ClientToScreen(hwnd, ref clientTopLeftRaw);
+            return clientTopLeftRaw;
+        }
         public static void SetWindowOrder(IntPtr hWnd, HWND order) => WinApi.SetWindowPos(hWnd, (IntPtr)order, 0, 0, 0, 0, (uint)(SWP.NO_MOVE | SWP.NO_SIZE | SWP.NO_REDRAW));
         public static void SetWindowRect(IntPtr hWnd, Rectangle rect) => WinApi.SetWindowPos(hWnd, IntPtr.Zero, rect.X, rect.Y, rect.Width, rect.Height, (uint)(SWP.NO_Z_ORDER | SWP.NO_OWNER_Z_ORDER | SWP.NO_REDRAW));
         public static void SetWindowLocation(IntPtr hWnd, Location loc) => WinApi.SetWindowPos(hWnd, IntPtr.Zero, loc.X, loc.Y, 0, 0, (uint)(SWP.NO_Z_ORDER | SWP.NO_OWNER_Z_ORDER | SWP.NO_REDRAW | SWP.NO_SIZE));
@@ -117,6 +128,12 @@ namespace WinDirector
 
         [DllImport("user32.dll")]
         public static extern bool GetWindowRect(IntPtr hWnd, out Rectangle lpRect);
+
+        [DllImport("user32.dll")]
+        public static extern bool GetClientRect(IntPtr hWnd, out Rectangle lpRect);
+
+        [DllImport("user32.dll")]
+        public static extern bool ClientToScreen(IntPtr hWnd, ref Location lpPoint);
 
         [DllImport("user32.dll")]
         public static extern int SetWindowText(IntPtr hWnd, string text);
