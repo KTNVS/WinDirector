@@ -50,6 +50,7 @@ namespace WinDirector.Processes.UI
         }
         public static void CloseWindow(IntPtr hWnd) => WinApi.SendMessage(hWnd, (uint)WM.SYSCOMMAND, (IntPtr)SC.CLOSE, IntPtr.Zero);
         public static IntPtr GetForeGroundWindow() => WinApi.GetForegroundWindow();
+        public static void SetForeGroundWindow(IntPtr hWnd) => WinApi.SetForegroundWindow(hWnd);    
         public static IntPtr GetActiveWindow() => WinApi.GetActiveWindow();
         public static IntPtr WindowFromPoint(Location Point) => WinApi.WindowFromPoint(Point);
 
@@ -122,6 +123,9 @@ namespace WinDirector
 
         [DllImport("user32.dll")]
         public static extern IntPtr GetForegroundWindow();
+
+        [DllImport("user32.dll")]
+        public static extern bool SetForegroundWindow(IntPtr hWnd);
 
         [DllImport("user32.dll")]
         public static extern IntPtr GetActiveWindow();

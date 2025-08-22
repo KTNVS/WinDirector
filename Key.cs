@@ -9,8 +9,10 @@ namespace WinDirector.Input
 {
     public static class Key
     {
-        private const uint KEYEVENTF_KEYDOWN = 0x0001;
+        private const uint KEYEVENTF_KEYDOWN = 0x0000;
         private const uint KEYEVENTF_KEYUP = 0x0002;
+        private const uint KEYEVENTF_EXTENDEDKEY = 0x0001;
+        private const uint KEYEVENTF_SCANCODE = 0x0008;
 
         private static bool _enabled = true;
         public static bool Enabled
@@ -32,12 +34,43 @@ namespace WinDirector.Input
         private static bool keyHookIsInitialized = false;
 
 
+        public static bool IsExtendedKey(KeyCode key)
+        {
+            switch (key)
+            {
+                case KeyCode.Right:
+                case KeyCode.Left:
+                case KeyCode.Up:
+                case KeyCode.Down:
+                case KeyCode.Prior:
+                case KeyCode.Next:
+                case KeyCode.End:
+                case KeyCode.Home:
+                case KeyCode.Insert:
+                case KeyCode.Delete:
+                case KeyCode.RControlKey:
+                case KeyCode.RMenu:
+                case KeyCode.LWin:
+                case KeyCode.RWin:
+                case KeyCode.Apps:
+                case KeyCode.Snapshot:
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+
         // TODO: Sending control/alt keys to a specific window does not work. Also not reliable. Find a solution or a workaround. Consider SendInput or SetKeyboardState
         // Possible Solution: https://stackoverflow.com/questions/35408495/sendinput-to-background-window
         public static void SendKey(KeyCode key, KeyAction keyAction)
         {
-            uint KEYEVENTF = keyAction == KeyAction.KeyDown ? KEYEVENTF_KEYDOWN : KEYEVENTF_KEYUP;
-            WinApi.keybd_event((byte)key, 0, KEYEVENTF, IntPtr.Zero);
+            Input[] input = InputBuilder.BuildKeyInput(key, keyAction);
+
+            if (input == null || input.Length == 0)
+                return;
+
+            WinApi.SendInput((uint)input.Length, input, Marshal.SizeOf(typeof(Input)));
         }
         public static void SendKey(KeyCode key, KeyAction keyAction, IntPtr hwnd)
         {
@@ -80,7 +113,7 @@ namespace WinDirector.Input
         }
         public class ShortcutCatcher
         {
-            private KeyWatcher KeyWatcher;
+            private readonly KeyWatcher KeyWatcher;
             private readonly List<KeyCode> ShortcutKeys;
 
             public ShortcutCatcher(KeyCode[] keys)
@@ -166,6 +199,15 @@ namespace WinDirector.Input
         KeyDown,
         KeyUp
     }
+
+    public enum KEYEVENTF : uint
+    {
+        EXTENDEDKEY = 0x0001,
+        KEYUP = 0x0002,
+        UNICODE = 0x0004,
+        SCANCODE = 0x0008,
+        KEYDOWN = 0x0000
+    }
 }
 
 namespace WinDirector
@@ -174,6 +216,15 @@ namespace WinDirector
     {
         [DllImport("user32.dll", CharSet = CharSet.Auto)]
         public static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, IntPtr dwExtraInfo);
+
+        [DllImport("user32.dll")]
+        public static extern bool GetKeyboardState(byte[] lpKeyState);
+
+        [DllImport("user32.dll")]
+        public static extern uint MapVirtualKey(uint uCode, uint uMapType);
+
+        [DllImport("user32.dll")]
+        public static extern IntPtr GetKeyboardLayout(uint idThread);
     }
 
     public enum KeyCode : uint
